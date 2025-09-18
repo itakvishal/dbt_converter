@@ -1,0 +1,994 @@
+version: 2
+models:
+- name: CHNL_TIDEWALLET_TRANSACTIONS
+  description: ''
+  columns:
+  - name: TIDEWALLET_TRANSACTION_ID
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: ISSUER
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: UPDATED_BY_ID
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: UPDATED_BY_TYPE
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: ACCOUNT_ID
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: BOOKING_DATE_TIME
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: CREDITOR_ACCOUNT_IDENTIFICATION
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.RED: RED'
+  - name: CREDITOR_NAME
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.RED: RED'
+  - name: DEBTOR_ACCOUNT_IDENTIFICATION
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.RED: RED'
+  - name: DEBTOR_NAME
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.RED: RED'
+  - name: LOCAL_INSTRUMENT
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: MCC
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: TRANSACTION_REFERENCE
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: VALUE_DATE_TIME
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: BALANCE_TRANSACTION_ID
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: REFERENCE_TRANSACTION_ID
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: AMOUNT_CURRENCY
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: AMOUNT_AMOUNT
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: AMOUNT_LC_CURRENCY
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: AMOUNT_LC_AMOUNT
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: CREATION_DATETIME
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: STATUS_REASON
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: CARD_AUTH_TYPE
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: OTHER_ACCOUNT_ID
+    description: ''
+    meta: {}
+  - name: OTHER_ACCOUNT_TYPE
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: WALLET_ACCOUNT_ID
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: OTHER_WALLET_ACCOUNT_ID
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: EXCHANGE_ID
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: DEBTOR_ACCOUNT_ID
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: CREDITOR_ACCOUNT_ID
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: EXTERNAL_TRANSACTION_TRACKING_ID
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: TRANSACTION_ID
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: UPDATION_DATETIME
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: TRANSACTION_LINK_ID
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: CREDIT_DEBIT_INDICATOR
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: TRANSACTION_INFORMATION
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: DESCRIPTION
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+      - 'CORE_PROD.TAGS.RED: RED'
+  - name: STATUS
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: MIGRATION_DATE_TIME
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: ADDITIONAL_DATA
+    description: ''
+    meta: {}
+  - name: CARD_IDENTIFICATION
+    description: ''
+    meta: {}
+  - name: CARD_SERIAL_NO
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.RED: RED'
+  - name: CREDITOR_AGENT_IDENTIFICATION
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: CREDITOR_AGENT_SCHEME_NAME
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: CREDITOR_SCHEME_NAME
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: DEBTOR_AGENT_IDENTIFICATION
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: DEBTOR_SCHEME_NAME
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: FEE_AMOUNT_AMOUNT
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: FEE_AMOUNT_CURRENCY
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: INSTRUMENT_SUB_TYPE
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: MERCHANT_NAME
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.RED: RED'
+  - name: MODIFICATION_COMPLETED_ON
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: ORIGINAL_TRANSACTION_REFERENCE
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: TXN_ALERT_SEQ_NUMBER
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: CARD_INT_NO
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: EVENT_JSON
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: TRANSACTION_LOADED_AT
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: BALANCE
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: BALANCE_CHANGED_ON
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: CARD_ID
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: COMPANY_ID
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: DEBTOR_AGENT_SCHEME_NAME
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: ISSUER_INSTITUTION
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: MERCHANT_LOCATION
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: RESERVATION_BALANCE
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: DBT_INSERTED_AT
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: TIS_TRANSACTION_TYPE
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: ACCOUNT_NUMBER
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.RED: RED'
+  - name: SORT_CODE
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: EXTERNAL_ACCOUNT_NUMBER
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.RED: RED'
+  - name: INT_CLEAR_BAL
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: NEW_BALANCE_AMOUNT
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: APPROVAL_INFO
+    description: ''
+    meta: {}
+  - name: INITIATION_INFO
+    description: ''
+    meta: {}
+  - name: TIDE_FEE_AMOUNT_AMOUNT
+    description: ''
+    meta: {}
+  - name: TIDE_FEE_AMOUNT_CURRENCY
+    description: ''
+    meta: {}
+  - name: TIDE_FEE_EXTERNAL_TRACKING_ID
+    description: ''
+    meta: {}
+  - name: MERCHANT_IDENTIFIER
+    description: ''
+    meta: {}
+- name: TIDEWALLET_CLEARED_TRANSACTIONS_LOGIC
+  description: ''
+  columns:
+  - name: CLEARED_TRANSACTION_ID
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: TXN_REF
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: CREATED_AT
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: UPDATED_AT
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: ACCEPTANCE_METHOD
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: ACCOUNT_ID
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: COMPANY_ID
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: PLAN_ID
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: PLAN_NAME
+    description: ''
+    meta: {}
+  - name: AMOUNT
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: AMOUNT_CURRENCY_CODE
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: AUTHORIZATION_CODE
+    description: ''
+    meta: {}
+  - name: BANK_ACCOUNT_NUMBER
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.RED: RED'
+  - name: BANK_REFERENCE
+    description: ''
+    meta: {}
+  - name: BANK_SORT_CODE
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: CARD_ACCEPTOR
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.RED: RED'
+  - name: CARD_FORM_FACTOR
+    description: ''
+    meta: {}
+  - name: CARD_PAN
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.RED: RED'
+  - name: CARD_SERIAL_NUMBER
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.RED: RED'
+  - name: CLEARED_AT
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: IS_CONTACTLESS
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: DESCRIPTION
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+      - 'CORE_PROD.TAGS.RED: RED'
+  - name: EXTERNAL_ACCOUNT_NUMBER
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.RED: RED'
+  - name: EXTERNAL_TXN_TYPE
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: GL_ITEMS_JSON
+    description: ''
+    meta: {}
+  - name: LOCAL_AT
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: MERCHANT_CATEGORY_CODE
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: MERCHANT_COUNTRY
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: MERCHANT_NUMBER
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: MERCHANT_POST_CODE
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.RED: RED'
+  - name: NEW_BALANCE_AMOUNT
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: NOTIFICATION_REFERENCE
+    description: ''
+    meta: {}
+  - name: PAYEE_NAME
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.RED: RED'
+  - name: PAYER_NAME
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.RED: RED'
+  - name: PAYMENT_REFERENCE
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: SCHEME_CODE
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: SRC_AMOUNT
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: SRC_AMOUNT_CURRENCY_CODE
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: TRANSACTION_AT
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: TRANSACTION_TYPE
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: CARD_ACTIVATION_DATE
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: ACTUAL_CARD_ACTIVATION_DATE
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: CARD_STATUS
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: CATEGORY
+    description: ''
+    meta: {}
+  - name: WALLET_SERVICE_PROVIDER
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: LOADED_AT
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: ISSUER
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: UPDATED_BY_ID
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: UPDATED_BY_TYPE
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: CREDITOR_ACCOUNT_IDENTIFICATION
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.RED: RED'
+  - name: CREDITOR_NAME
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.RED: RED'
+  - name: DEBTOR_NAME
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.RED: RED'
+  - name: DEBTOR_ACCOUNT_IDENTIFICATION
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.RED: RED'
+  - name: BALANCE_TRANSACTION_ID
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: REFERENCE_TRANSACTION_ID
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: AMOUNT_LC_CURRENCY
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: AMOUNT_LC_AMOUNT
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: STATUS_REASON
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: OTHER_ACCOUNT_ID
+    description: ''
+    meta: {}
+  - name: OTHER_ACCOUNT_TYPE
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: WALLET_ACCOUNT_ID
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: OTHER_WALLET_ACCOUNT_ID
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: EXCHANGE_ID
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: DEBTOR_ACCOUNT_ID
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: CREDITOR_ACCOUNT_ID
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: EXTERNAL_TRANSACTION_TRACKING_ID
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: TRANSACTION_ID
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: TRANSACTION_LINK_ID
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: STATUS
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: MIGRATION_DATE_TIME
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: MERCHANT_IDENTIFIER
+    description: ''
+    meta: {}
+  - name: ADDITIONAL_DATA
+    description: ''
+    meta: {}
+  - name: CREDITOR_AGENT_IDENTIFICATION
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: CREDITOR_AGENT_SCHEME_NAME
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: CREDITOR_SCHEME_NAME
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: DEBTOR_AGENT_IDENTIFICATION
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: DEBTOR_SCHEME_NAME
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: FEE_AMOUNT_AMOUNT
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: FEE_AMOUNT_CURRENCY
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: INSTRUMENT_SUB_TYPE
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: MODIFICATION_COMPLETED_ON
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: ORIGINAL_TRANSACTION_REFERENCE
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: TXN_ALERT_SEQ_NUMBER
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: CREDIT_DEBIT_INDICATOR
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: APPROVAL_INFO
+    description: ''
+    meta: {}
+  - name: INITIATION_INFO
+    description: ''
+    meta: {}
+  - name: BALANCE
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: BALANCE_CHANGED_ON
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: DIRECTION
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: TAX
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+      - 'CORE_PROD.TAGS.RED: RED'
+  - name: CREDIT
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+      - 'CORE_PROD.TAGS.RED: RED'
+  - name: BOUNCED
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: DEPOSIT
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+      - 'CORE_PROD.TAGS.RED: RED'
+  - name: FIN_TRANSFER
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+      - 'CORE_PROD.TAGS.RED: RED'
+  - name: IS_DESCRIPTION_INCLUDE_LAST_NAME
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+      - 'CORE_PROD.TAGS.RED: RED'
+  - name: IS_POS
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+      - 'CORE_PROD.TAGS.RED: RED'
+  - name: TRANSACTION_CATEGORY
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: TIDE_REVENUE
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: REVENUE_CATEGORY
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: IS_TURNOVER
+    description: ''
+    meta: {}
+  - name: XERO
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+      - 'CORE_PROD.TAGS.RED: RED'
+  - name: SAGE
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+      - 'CORE_PROD.TAGS.RED: RED'
+  - name: QUICKBOOKS
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+      - 'CORE_PROD.TAGS.RED: RED'
+  - name: FREEAGENT
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+      - 'CORE_PROD.TAGS.RED: RED'
+  - name: MCA
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+      - 'CORE_PROD.TAGS.RED: RED'
+  - name: INVOICE
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+      - 'CORE_PROD.TAGS.RED: RED'
+  - name: POS
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+      - 'CORE_PROD.TAGS.RED: RED'
+  - name: POS1
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+      - 'CORE_PROD.TAGS.RED: RED'
+  - name: POS2
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+      - 'CORE_PROD.TAGS.RED: RED'
+  - name: ENERGY
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+      - 'CORE_PROD.TAGS.RED: RED'
+  - name: INSURANCE
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+      - 'CORE_PROD.TAGS.RED: RED'
+  - name: TELEPHONE
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+      - 'CORE_PROD.TAGS.RED: RED'
+  - name: VALID_PSP_REVENUE_TERMS
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+      - 'CORE_PROD.TAGS.RED: RED'
+  - name: ACTUAL_CASHBACK
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: POTENTIAL_CASHBACK
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: DBT_INSERTED_AT
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: TIS_TRANSACTION_TYPE
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: CARD_ID
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: ISSUER_INSTITUTION
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: MERCHANT_LOCATION
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: RESERVATION_BALANCE
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
+  - name: TIDE_FEE_AMOUNT_AMOUNT
+    description: ''
+    meta: {}
+  - name: TIDE_FEE_AMOUNT_CURRENCY
+    description: ''
+    meta: {}
+  - name: TIDE_FEE_EXTERNAL_TRACKING_ID
+    description: ''
+    meta: {}
+  - name: EVENT_JSON
+    description: ''
+    meta:
+      tags:
+      - 'CORE_PROD.TAGS.AMBER: AMBER'
