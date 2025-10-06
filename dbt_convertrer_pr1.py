@@ -12,7 +12,7 @@ DBT_PROJECT_DIR = r"C:\Users\p.pravinkumaar\Documents\dbt tagging\dbt_converter-
 yaml_handler = YAML()
 yaml_handler.indent(mapping=2, sequence=4, offset=2)
 
-# Snowflake connection
+# Connect to Snowflake
 conn = snowflake.connector.connect(
     user=os.getenv("SNOWFLAKE_USER"),
     password=os.getenv("SNOWFLAKE_PASSWORD"),
@@ -21,10 +21,10 @@ conn = snowflake.connector.connect(
     role=os.getenv("SNOWFLAKE_ROLE", "ACCOUNTADMIN")
 )
 
-# Read Excel inventory
+# Load Excel
 df = pd.read_excel(EXCEL_FILE)
 
-# Regex to parse DDL columns and tags
+# Regex to extract column + tag info
 ddl_pattern = re.compile(
     r"""^\s*
     (?P<col_name>\w+)\s+
@@ -83,8 +83,7 @@ def find_table_in_yamls(table_name, schema_files):
 
 def upsert_columns(existing_columns, new_columns, model_name):
     existing_by_name = {col["name"]: col for col in existing_columns}
-    added = []
-    updated = []
+    logs = []
 
     for new_col in new_columns:
         name = new_col["name"]
@@ -101,18 +100,13 @@ def upsert_columns(existing_columns, new_columns, model_name):
                 changes.append("meta")
 
             if changes:
-                updated.append((name, changes))
+                logs.append(f"🔁 [{model_name}] Column '{name}' updated fields: {', '.join(changes)}")
 
         else:
             existing_columns.append(new_col)
-            added.append(name)
-
-    # 🖨️ Logging
-    if added:
-        print(f"➕ [{model_name}] Columns added: {', '.join(added)}")
-    if updated:
-        for col_name, fields in updated:
-            print(f"🔁 [{model_name}] Column '{col_name}' updated fields: {', '.join(fields)}")
+            logs.append(f"➕ [{model_name}] Column added: {name}")
+    
+    return logs
 
 # ------------------- Main Logic -------------------
 
@@ -138,17 +132,20 @@ for _, row in df.iterrows():
     if yaml_path:
         if "models" not in yaml_data:
             yaml_data["models"] = []
-        model_found = False
+
+        updated = False
 
         for model in yaml_data["models"]:
             if model.get("name") == table:
                 if "columns" not in model:
                     model["columns"] = []
-                upsert_columns(model["columns"], new_columns, table)
-                model_found = True
+                logs = upsert_columns(model["columns"], new_columns, table)
+                for log in logs:
+                    print(log)
+                updated = True
                 break
 
-        if not model_found:
+        if not updated:
             print(f"➕ Adding full model '{table}' to existing schema.yml: {yaml_path}")
             yaml_data["models"].append({
                 "name": table,
@@ -157,10 +154,9 @@ for _, row in df.iterrows():
             })
 
         yamls_to_write[yaml_path] = yaml_data
-        print(table)
 
     else:
-        # No existing YAML contains this model — create new or append to default
+        # No matching schema.yml found — create new
         model = {
             "name": table,
             "description": "",
@@ -172,7 +168,7 @@ for _, row in df.iterrows():
 
         if default_yaml_path in yamls_to_write:
             yamls_to_write[default_yaml_path]["models"].append(model)
-        elif default_yaml_path in schema_files:
+        elif os.path.exists(default_yaml_path):
             with open(default_yaml_path) as f:
                 existing_yaml = yaml_handler.load(f) or {}
             if "models" not in existing_yaml:
