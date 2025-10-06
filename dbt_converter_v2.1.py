@@ -17,7 +17,7 @@ yaml_handler.preserve_quotes = True
 # Snowflake connection
 conn = snowflake.connector.connect(
     user="ITAKVISHAL",
-    password="thevirusVishal007@",
+    password="",
     account="FYLIJTU-UL02143",
     warehouse="COMPUTE_WH",
     role="ACCOUNTADMIN"
