@@ -5,8 +5,8 @@ import re
 from ruamel.yaml import YAML
 
 # ---------- CONFIGURATION ----------
-EXCEL_FILE = r"C:\Users\p.pravinkumaar\Documents\dbt tagging\dbt_converter-1\sf_table_inventory.xlsx"
-DBT_PROJECT_DIR = r"C:\Users\p.pravinkumaar\Documents\dbt tagging\dbt_converter-1\models"
+EXCEL_FILE = r"/Users/takvishal/Documents/dbt_conversion/dbt_converter/sf_table_inventory.xlsx"
+DBT_PROJECT_DIR = r"/Users/takvishal/Documents/dbt_conversion/models"
 # -----------------------------------
 
 yaml_handler = YAML()
@@ -21,9 +21,11 @@ conn = snowflake.connector.connect(
     role=os.getenv("SNOWFLAKE_ROLE", "ACCOUNTADMIN")
 )
 
+print("Connected to Snowflake successfully.")
+
 # Load Excel
 df = pd.read_excel(EXCEL_FILE)
-
+print("Loaded the excel file")
 # Regex to extract column + tag info
 ddl_pattern = re.compile(
     r"""^\s*
@@ -77,18 +79,20 @@ def find_table_in_yamls(table_name, schema_files):
             data = yaml_handler.load(f) or {}
         models = data.get("models", [])
         for model in models:
-            if model.get("name") == table:
+            if model.get("name", "").lower() == table_name.lower():
                 return path, data, model
     return None, None, None
 
 def upsert_columns(existing_columns, new_columns, model_name):
-    existing_by_name = {col["name"]: col for col in existing_columns}
+    existing_by_name = {col["name"].lower(): col for col in existing_columns}
     logs = []
 
     for new_col in new_columns:
         name = new_col["name"]
-        if name in existing_by_name:
-            existing_col = existing_by_name[name]
+        key = name.lower()
+
+        if key in existing_by_name:
+            existing_col = existing_by_name[key]
             changes = []
 
             if not existing_col.get("description") and new_col.get("description"):
@@ -103,9 +107,20 @@ def upsert_columns(existing_columns, new_columns, model_name):
                 logs.append(f"🔁 [{model_name}] Column '{name}' updated fields: {', '.join(changes)}")
 
         else:
+            # Add new column (case-insensitive check done)
             existing_columns.append(new_col)
             logs.append(f"➕ [{model_name}] Column added: {name}")
     
+    # Ensure unique columns by name (case-insensitive)
+    seen = set()
+    unique_columns = []
+    for col in existing_columns:
+        key = col["name"].lower()
+        if key not in seen:
+            unique_columns.append(col)
+            seen.add(key)
+    existing_columns[:] = unique_columns
+
     return logs
 
 # ------------------- Main Logic -------------------
@@ -116,7 +131,7 @@ yamls_to_write = {}
 for _, row in df.iterrows():
     database = row["database"]
     schema = row["schema"]
-    table = row["table_name"]
+    table = str(row["table_name"]).strip().lower()
 
     # Fetch DDL from Snowflake
     cur = conn.cursor()
@@ -127,6 +142,7 @@ for _, row in df.iterrows():
         cur.close()
 
     new_columns = parse_ddl_to_dbt(ddl_string)
+    print(f"🔍 Parsed {len(new_columns)} columns for table: {table}")
     yaml_path, yaml_data, existing_model = find_table_in_yamls(table, schema_files)
 
     if yaml_path:
