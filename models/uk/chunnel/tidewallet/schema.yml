@@ -1,0 +1,141 @@
+version: 2
+
+models:
+  - name: tidewallet_cleared_transactions
+    meta:
+      owner: "@payment_services"
+    description: This model contains data on cleared_transactions with extra revenue fields
+    tests:
+      - elementary.volume_anomalies:
+          tags: ['data-quality-elementary']
+    columns:
+      - name: company_id
+        description: Unique identifier of each company
+        # tests:
+        #   - not_null:
+        #       where: "updated_at < dateadd(day, -3, GETDATE() )"
+
+      - name: account_id
+        description: Unique identifier of each account
+
+      - name: cleared_transaction_id
+        description: Unique identifier of each cleared_transaction. Cannot be used for joins to other transaction tables.
+        tests:
+          - not_null:
+              where: "dbt_inserted_at > TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 3 DAY)"
+          # - unique
+
+      - name: txn_ref
+        description: Unique identifier of each transaction. Used for joins to other transaction tables
+        tests:
+          - not_null:
+              where: "dbt_inserted_at > TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 3 DAY)"
+          # - unique
+
+      - name: acceptance_method
+        # description:
+
+      - name: created_at
+        description: Timestamp when the row was created in db_tide.cleared_transaction table
+
+      - name: updated_at
+        description: Timestamp when the row was last updated in db_tide.cleared_transaction table
+
+      - name: amount
+        description: Amount of transaction
+
+      - name: amount_currency_code
+        description: Currency code of 'amount' field
+
+      - name: authorization_code
+        # description:
+
+      - name: card_acceptor
+        # description:
+
+      - name: card_form_factor
+        description: Equal to 'PLASTIC' for card payments or null for other payments
+
+      - name: card_pan
+        description: Card pan for card payments
+
+      - name: card_serial_number
+        description: Card serial number for card payments
+
+      - name: cleared_at
+        description: Timestamp when this transaction was cleared
+
+      - name: is_contactless
+        description: Boolean - (Presumably) whether the card payment was a contactless payment
+
+      - name: description
+        description: Description for the transaction
+
+      - name: external_account_number
+        description: PPS internal account number for each Tide account
+
+      - name: external_txn_type
+        description: Transaction type coming from PPS. Check https://tideaccount.atlassian.net/wiki/spaces/~759791799/pages/1246724474/Cleared+Transaction+Table for more details
+
+      - name: local_at
+        description: Local timestamp for transaction
+
+      - name: merchant_category_code
+        description: Merchant information - Category
+
+      - name: merchange_country
+        description: Merchant information - Country
+
+      - name: merchant_number
+        description: Merchant information - Merchant number
+
+      - name: merchant_post_code
+        description: Merchant information - Post code
+
+      - name: new_balance_amount
+        description: Balance on account after transaction clears - Usually accurate
+
+      - name: notification_reference
+        # description:
+
+      - name: payee_name
+        # description:
+
+      - name: payer_name
+        # description:
+
+      - name: payment_reference
+        # description:
+
+      - name: scheme_code
+        # description:
+
+      - name: src_amount
+        # description:
+
+      - name: src_amount_currency_code
+        # description:
+
+      - name: tide_interchange_revenue
+        description: Tide's interchange revenue from this transaction
+
+      - name: tide_transaction_fee_revenue
+        description: Tide fee revenue from this transaction
+
+      - name: transaction_category
+        description: Categorisation based on transaction type and acceptance method, and scheme code
+
+      - name: transaction_at
+        description: Timestamp when this transaction happened
+
+      - name: transaction_type
+        description: Internal transaction type. Check https://tideaccount.atlassian.net/wiki/spaces/~759791799/pages/1246724474/Cleared+Transaction+Table for more details
+
+      - name: plan_id
+        description: Unique id of plan at time of transaction, 1 is 'standard', others are paid plans.
+
+      - name: plan_name
+        description: Common internal name for each plan, such as 'Plus', 'Premium', 'Cashback'
+
+      - name: dbt_inserted_at
+        description: Timestamp when dbt created this row in this table
