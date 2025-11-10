@@ -1,0 +1,87 @@
+version: 2
+
+sources:
+  - name: ps_pres_sources
+    database: tide-payment-prj-{{ env_var('profile') }}-iac-uk
+    schema: PRES_PAYMENT_SERVICES
+    tables:
+      - name: MEMBER_TEAMCARD_DETAILS
+
+  - name: tidewallet_api_public
+    database: tide-payment-prj-{{ env_var('profile') }}-iac-uk
+    schema: uk_ledger_svc_public
+    loaded_at_field: _fivetran_synced
+    freshness:
+      warn_after: {count: 1, period: day}
+      error_after: {count: 2, period: day}
+    tables:
+      - name: tide_transaction_exchange_rate
+      - name: tide_transaction
+
+  - name: kyx_prod
+    database: tide-kyx-prj-{{ env_var('profile') }}-iac-uk
+    schema: INTG_DB_TIDE
+    tables:
+      - name: LATEST_COMPANIES
+      # - name: latest_memberships
+      # - name: latest_trans_categories
+      - name: LATEST_USERS
+
+  - name: mem_prod
+    database: tide-core-prj-{{ env_var('profile') }}-iac-uk
+    schema: CHNL_MEM
+    tables:
+      - name: COMPANY_PLANS
+
+  - name: ps_pres_business_services
+    description: This source is added to pull data from the business sources for categorisation of transactions
+    database: tide-core-prj-{{ env_var('profile') }}-iac-uk
+    schema: PRES_BUSINESS_SERVICES
+    tables:
+      - name: LATEST_TRANSACTION_CATEGORIES
+        description: This table is added to pull data from the business sources for categorisation of transactions
+
+models:
+  - name: chnl_tidewallet_transactions
+    description: This model contains wallet id migration date and loading time.
+    meta:
+      owner: "@paymet_services"
+    tests:
+      - elementary.volume_anomalies:
+          tags: ['data-quality-elementary']
+    columns:
+      - name: tidewallet_transaction_id
+        description: Unique identifer of each Tide company.
+        tests:
+          - not_null:
+              where: "dbt_inserted_at > TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 3 DAY)"
+          - unique
+
+  - name: tidewallet_cleared_transactions_logic
+    description: This model contains all cleared transaction logic for derived columns + ledger columns.
+    meta:
+      owner: "@paymet_services"
+    tests:
+      - elementary.volume_anomalies:
+          tags: ['data-quality-elementary']
+    columns:
+      - name: cleared_transaction_id
+        description: Unique identifer of each Tide company.
+        tests:
+          - not_null:
+              where: "loaded_at > TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 3 DAY)"
+
+  - name: chnl_tis_transactions
+    meta:
+      owner: "@payment_services"
+    description: This table contains balance JSON data from tide_transactions table.
+    tests:
+      - elementary.volume_anomalies:
+          tags: ['data-quality-elementary']
+    columns:
+      - name: transaction_id
+        description: tidewallet transaction Id.
+        tests:
+          - not_null:
+              where: "transaction_loaded_at > TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 3 DAY)"
+          - unique

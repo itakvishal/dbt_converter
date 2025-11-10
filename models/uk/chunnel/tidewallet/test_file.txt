@@ -1,0 +1,523 @@
+{{
+    config(
+        pre_hook="ALTER WAREHOUSE {{ this.warehouse }} SET WAREHOUSE_SIZE='MEDIUM'",
+        materialized = 'incremental',
+        schema = 'chnl_payment_services',
+        unique_key='cleared_transaction_id',
+        tags = '2hours',
+        on_schema_change='sync_all_columns',
+        cluster_by=['transaction_at', 'scheme_code','transaction_type','account_id'],
+        post_hook= "ALTER WAREHOUSE {{ this.warehouse }} SET WAREHOUSE_SIZE='SMALL'"
+    )
+}}
+
+WITH card_activation AS (
+  SELECT
+    tt.account_id,
+    tt.card_identification AS card_pan,
+    MIN(tt.booking_date_time ) AS card_activation_date
+  FROM {{ ref ('chnl_tidewallet_transactions') }} tt
+  WHERE tt."type" = 'CARD_TRANSACTION' AND credit_debit_indicator = 'DEBIT'
+  GROUP BY 1,2
+),
+
+actual_card_activation AS (
+  SELECT
+    account_id,
+    serial_number,
+    card_status,
+    card_activation_date AS actual_card_activation_date
+  FROM {{ ref('member_teamcard_details') }}
+),
+
+latest_raw_cleared_transactions AS (
+    SELECT 
+        wallet_service_provider,
+        amt_interchange_val,
+        txn_id,
+        mer_name,
+        mer_cat ,
+        mer_cntry,
+        mer_num,
+        mer_post_code,
+    FROM {{ ref('chnl_tidewallet_transactions') }} ct
+    LEFT JOIN {{ ref('latest_raw_cleared_transactions') }} rct
+        ON ct.transaction_reference = rct.txn_id
+    WHERE   ct."type" IN ('CARD_TRANSACTION','CARD_TRANSACTION_REFUND','CARD_TRANSACTION_REFUND_REVERSAL') 
+        AND ct.credit_debit_indicator = 'DEBIT'
+        AND ct.amount_amount > 0
+    
+    {% if is_incremental() %}
+        AND ct.transaction_loaded_at >  DATEADD(day, -7, GETDATE() )
+    {% endif %}
+
+)
+
+SELECT
+    ct.tidewallet_transaction_id::VARCHAR AS cleared_transaction_id,
+    ct.transaction_reference AS txn_ref,
+    ct.creation_datetime AS created_at,
+    ct.updation_datetime AS updated_at,
+    ct.card_auth_type AS acceptance_method,
+    ct.account_id,
+    ct.company_id,
+    cp.plan_id,
+    cp.plan_name,
+    (iff(credit_debit_indicator = 'DEBIT',  -1*amount_amount , amount_amount))::FLOAT AS amount,
+    ct.amount_currency AS amount_currency_code,
+    NULL AS authorization_code,
+    ct.account_number AS bank_account_number, --This field was set to null from late 2017
+    NULL AS bank_reference, ---This field is always null
+    ct.sort_code AS bank_sort_code, ---This field is null since late 2017
+    ct.merchant_name AS card_acceptor,
+    NULL AS card_form_factor,
+    ct.card_identification AS card_pan,
+    ct.card_serial_no AS card_serial_number,
+    ct.value_date_time AS cleared_at,
+    CASE WHEN ct.card_auth_type LIKE 'CONTACTLESS%' THEN 1 ELSE 0 END AS is_contactless,
+    ct.description,
+    ct.external_account_number,
+    ct."type" AS external_txn_type,
+    NULL AS gl_items_json,
+    ct.booking_date_time AS local_at,
+    ct.mcc AS merchant_category_code,
+    rct.mer_cntry AS merchant_country,
+    rct.mer_num AS merchant_number,
+    rct.mer_post_code AS merchant_post_code,
+    ct.new_balance_amount,
+    '' AS notification_reference,
+    ct.creditor_name AS payee_name,
+    ct.debtor_name AS payer_name,
+    ct.transaction_information AS payment_reference,
+    ct.local_instrument AS scheme_code,
+    er.instructed_amount_amount::FLOAT AS src_amount,
+    er.instructed_amount_currency AS src_amount_currency_code,
+    ct.booking_date_time AS transaction_at,
+    ct."type" AS transaction_type,
+    ca.card_activation_date,
+    ac.actual_card_activation_date,
+    ac.card_status,
+    c.name AS category,
+    rct.wallet_service_provider, 
+    ct.transaction_loaded_at AS loaded_at,
+    ----tidewallet columns
+    ct.issuer,
+    ct.updated_by_id,
+    ct.updated_by_type,
+    ct.creditor_account_identification,
+    ct.creditor_name,
+    ct.debtor_name,
+    ct.debtor_account_identification,
+    ct.balance_transaction_id,
+    ct.reference_transaction_id,
+    ct.amount_lc_currency,
+    ct.amount_lc_amount,
+    ct.status_reason,
+    ct.other_account_id,
+    ct.other_account_type,
+    ct.wallet_account_id,
+    ct.other_wallet_account_id,
+    ct.exchange_id,
+    ct.debtor_account_id,
+    ct.creditor_account_id,
+    ct.external_transaction_tracking_id,
+    ct.transaction_id,
+    ct.transaction_link_id,
+    ct.status,
+    ct.migration_date_time,
+    ct.merchant_identifier,
+    ct.additional_data,
+    ct.creditor_agent_identification,
+    ct.creditor_agent_scheme_name,
+    ct.creditor_scheme_name,
+    ct.debtor_agent_identification,
+    ct.debtor_scheme_name,
+    ct.fee_amount_amount,
+    ct.fee_amount_currency,
+    ct.instrument_sub_type,
+    ct.modification_completed_on,
+    ct.original_transaction_reference,
+    ct.txn_alert_seq_number,
+    ct.credit_debit_indicator,
+    ct.approval_info,
+    ct.initiation_info,
+    ct.balance,
+    ct.balance_changed_on,
+    --logical columns of cleared transaction
+    CASE
+        WHEN ct."type" IN ('ACQUIRER_SETTLEMENT','DOMESTIC_TRANSFER','CARD_TO_CARD_TRANSFER','INTERNAL_BOOK_TRANSFER','CROSSBORDER_TRANSFER','CASH_DEPOSIT') 
+            AND ct.credit_debit_indicator = 'CREDIT' THEN 'Inbound'
+        WHEN ct."type" IN ('OWN_ACCOUNT_TRANSFER','INTERNAL_BOOK_TRANSFER','FX_TRANSFER') THEN 'Internal' 
+        ELSE 'Outbound' 
+    END AS direction,
+    CASE
+        WHEN (ct."type" NOT IN ('FEE','UNKNOWN','ADJUSTMENT') AND ct.amount_currency='GBP') 
+            AND (ct.description ILIKE '% HMRC %' 
+            OR ct.description ILIKE '% VAT %' 
+            OR ct.description ILIKE '% TAX %' 
+            OR ct.description ILIKE '%Revenue and Customs%' 
+            OR c.name ILIKE 'tax') THEN 1 ELSE 0
+    END AS tax,
+    CASE
+        WHEN
+        (ct."type" NOT IN ('FEE','UNKNOWN','ADJUSTMENT') AND ct.amount_currency='GBP') AND
+        (ct.description ILIKE '% interest %' OR
+        ct.description ILIKE 'interest %' OR
+        ct.description ILIKE '% interest' OR
+        ct.description ILIKE '% repayment %' OR
+        ct.description ILIKE 'repayment %' OR
+        ct.description ILIKE '% repayment' OR
+        ct.description ILIKE '% installment %' OR
+        ct.description ILIKE 'installment %' OR
+        ct.description ILIKE '% installment' OR
+        ct.description ILIKE '% Funding Circle %' OR
+        ct.description ILIKE 'Funding Circle %' OR
+        ct.description ILIKE '% Funding Circle' OR
+        ct.description ILIKE '% FC %' OR
+        ct.description ILIKE 'FC %' OR
+        ct.description ILIKE '% FC' OR
+        ct.description ILIKE '% Iwoca %' OR
+        ct.description ILIKE 'Iwoca %' OR
+        ct.description ILIKE '% Iwoca' OR
+        ct.description ILIKE '%Capital on tap%' OR
+        ct.description ILIKE '% Thincats %' OR
+        ct.description ILIKE 'Thincats %' OR
+        ct.description ILIKE '% Thincats' OR
+        ct.description ILIKE '% Ratesetter %' OR
+        ct.description ILIKE 'Ratesetter %' OR
+        ct.description ILIKE '% Ratesetter' OR
+        ct.description ILIKE '% Rate setter %' OR
+        ct.description ILIKE 'Rate setter %' OR
+        ct.description ILIKE '% Rate setter' OR
+        ct.description ILIKE '% Kabbage %' OR
+        ct.description ILIKE 'Kabbage %' OR
+        ct.description ILIKE '% Kabbage' OR
+        ct.description ILIKE '% Lending %' OR
+        ct.description ILIKE 'Lending %' OR
+        ct.description ILIKE '% Lending' OR
+        ct.description ILIKE '% Loan %' OR
+        ct.description ILIKE 'Loan %' OR
+        ct.description ILIKE '% Loan' OR
+        ct.description ILIKE '% MarketInvoice %' OR
+        ct.description ILIKE 'MarketInvoice %' OR
+        ct.description ILIKE '% MarketInvoice' OR
+        ct.description ILIKE '% MI %' OR
+        ct.description ILIKE 'MI %' OR
+        ct.description ILIKE '% MI' OR
+        ct.description ILIKE '% Shawbrook %' OR
+        ct.description ILIKE 'Shawbrook %' OR
+        ct.description ILIKE '% Shawbrook' OR
+        ct.description ILIKE '% Aldermore %' OR
+        ct.description ILIKE 'Aldermore %' OR
+        ct.description ILIKE '% Aldermore' OR
+        ct.description ILIKE '% Bibby %' OR
+        ct.description ILIKE 'Bibby %' OR
+        ct.description ILIKE '% Bibby' OR
+        ct.description ILIKE '% Close Brothers %' OR
+        ct.description ILIKE 'Close Brothers %' OR
+        ct.description ILIKE '% Close Brothers' OR
+        ct.description ILIKE '% Factoring %' OR
+        ct.description ILIKE 'Factoring %' OR
+        ct.description ILIKE '% Factoring' OR
+        ct.description ILIKE '% Leasing %' OR
+        ct.description ILIKE 'Leasing %' OR
+        ct.description ILIKE '% Leasing' OR
+        c.name ILIKE 'loan') THEN 1 ELSE 0
+    END AS credit,
+    CASE
+        WHEN (ct."type" NOT IN ('FEE','UNKNOWN','ADJUSTMENT') AND ct.amount_currency='GBP')
+        AND (ct.status_reason = 'NOT_SUFFICIENT_FUNDS' OR ct.new_balance_amount < 0) -- old logic ( c.result_code = 'TRS0010') 
+        THEN 1 ELSE 0   ----- what does mean by this result_code in confluence it's not used but used in model
+    END AS bounced,
+    CASE
+        WHEN (ct."type" NOT IN ('FEE','UNKNOWN','ADJUSTMENT') AND ct.amount_currency='GBP')
+        AND (ct.description ILIKE '%deposit%' OR
+        ct.description ILIKE '%office%' OR
+        c.name ILIKE 'Rent') THEN 1 ELSE 0
+    END AS deposit,
+    CASE
+        WHEN (ct."type" NOT IN ('FEE','UNKNOWN','ADJUSTMENT') AND ct.amount_currency='GBP')
+         AND (ct.description ILIKE '%internal transfer%' OR
+        ct.description ILIKE '% tide %' OR
+        ct.description ILIKE 'tide %' OR
+        ct.description ILIKE '% tide' OR
+        ct.description ILIKE '%IBAN%' AND (ct.description NOT ILIKE 'INV%' OR ct.description NOT ILIKE '% INV%') OR
+        ct.description ILIKE '% IBAN %' AND (ct.description NOT ILIKE 'INV%' OR ct.description NOT ILIKE '% INV%') OR
+        ct.description ILIKE 'IBAN%' AND (ct.description NOT ILIKE 'INV%' OR ct.description NOT ILIKE '% INV%') OR
+        ct.description ILIKE '% IBAN' AND (ct.description NOT ILIKE 'INV%' OR ct.description NOT ILIKE '% INV%'))
+        THEN 1 ELSE 0
+    END AS fin_transfer,
+    CASE 
+        WHEN (ct."type" NOT IN ('FEE','UNKNOWN','ADJUSTMENT') AND ct.amount_currency='GBP')
+        AND (ct.description ILIKE '%' || u.last_name || '%') THEN 1 ELSE 0 
+    END AS is_description_include_last_name,
+    CASE
+        WHEN ct."type" IN ('ACQUIRER_SETTLEMENT','DOMESTIC_TRANSFER','CARD_TO_CARD_TRANSFER','INTERNAL_BOOK_TRANSFER','CROSSBORDER_TRANSFER','CASH_DEPOSIT') AND (ct.description ILIKE '%worldpay%' OR
+        ct.description ILIKE '%first%data%' OR
+        ct.description ILIKE '%paymentsense%' OR
+        ct.description ILIKE '%izettle%' OR
+        ct.description ILIKE '%cardnet%' OR
+        ct.description ILIKE '%bcard%' OR
+        ct.description ILIKE '%mv%' OR
+        ct.description ILIKE '%fdms%' OR
+        ct.description ILIKE '%elavon%' OR
+        ct.description ILIKE '%sumup%' OR
+        ct.description ILIKE '%stripe%' OR
+        ct.description ILIKE '%square%') THEN 1 ELSE 0
+    END AS is_pos,  --- review this once with team to verify the data is correct
+    CASE
+        WHEN ct."type" = 'CARD_TRANSACTION' AND ct.credit_debit_indicator = 'DEBIT' THEN 'Card Purchase'
+        WHEN ct."type" IN ('DOMESTIC_TRANSFER','CARD_TO_CARD_TRANSFER','ACQUIRER_SETTLEMENT') AND ct.credit_debit_indicator = 'CREDIT' 
+        THEN 
+            CASE
+                WHEN upper(ct.local_instrument) = 'UK.OBIE.FPS' THEN 'Faster Payment (IN)'
+                WHEN ct.local_instrument = 'UK.OBIE.BACS' THEN 'BACS (IN)'
+                WHEN ct.local_instrument = 'UK.OBIE.CHAPS' THEN 'CHAPS (IN)' ELSE 'OTHER FasterPayment In' 
+            END
+        WHEN ct."type" IN ('DOMESTIC_TRANSFER','CARD_TO_CARD_TRANSFER','ACQUIRER_SETTLEMENT') AND ct.credit_debit_indicator = 'DEBIT' THEN 'Faster Payment (OUT)'
+        WHEN ct."type" = 'DIRECT_DEBIT' AND ct.credit_debit_indicator = 'DEBIT' THEN 'Direct Debit (OUT)'
+        WHEN ct."type" = 'CASH_WITHDRAWAL' AND ct.credit_debit_indicator = 'DEBIT' THEN 'Cash Withdrawal'
+        WHEN ct."type" IN ('ADJUSTMENT','CASH_DEPOSIT') AND ct.credit_debit_indicator = 'CREDIT' THEN
+            CASE
+                WHEN ct.local_instrument IN ('POSTOFFICE','POST_OFFICE') AND ct.card_auth_type='CHIP' THEN 'Other Cash Top Up'
+                WHEN ct.local_instrument IN ('POSTOFFICE','POST_OFFICE', 'PAYPOINT','LEDGER') THEN ct.local_instrument ELSE 'Other Cash Top Up'
+            END
+        ELSE 'Other'
+    END AS transaction_category,  
+    CASE
+        WHEN ct."type" = 'CARD_TRANSACTION' AND ct.credit_debit_indicator = 'DEBIT' THEN COALESCE(rct.amt_interchange_val, ct.amount_amount * 0.0158) 
+        WHEN ct.local_instrument = 'PAYPOINT' THEN 0.03 * ABS(ct.amount_amount)
+        WHEN ct.local_instrument IN ('POSTOFFICE','POST_OFFICE') AND ct.card_auth_type<>'CHIP' THEN 1
+        WHEN ct."type" = 'CASH_WITHDRAWAL' THEN 1
+        WHEN ct."type" IN ('ACQUIRER_SETTLEMENT','DOMESTIC_TRANSFER', 'CARD_TO_CARD_TRANSFER','DIRECT_DEBIT','DIRECT_DEBIT_REFUND_REVERSAL','DIRECT_DEBIT_REFUND') THEN 0.2
+        WHEN transaction_category = 'Other Cash Top Up' AND ct.amount_amount > 500 THEN ct.amount_amount*0.005
+        WHEN transaction_category = 'Other Cash Top Up' AND ct.amount_amount <= 500 THEN 2.5
+        ELSE NULL
+    END AS tide_revenue,  
+    CASE
+        WHEN ct."type" = 'CARD_TRANSACTION' AND ct.credit_debit_indicator='DEBIT' THEN 'CardInterchange'
+        WHEN ct."type" IN ('CASH_DEPOSIT', 'ADJUSTMENT') AND ct.credit_debit_indicator = 'CREDIT' THEN 'CashTopUp'
+        WHEN ct."type" = 'CASH_WITHDRAWAL' THEN 'CashWithdrawal'
+        WHEN ct."type" IN ('ACQUIRER_SETTLEMENT','DOMESTIC_TRANSFER', 'CARD_TO_CARD_TRANSFER','DIRECT_DEBIT','DIRECT_DEBIT_REFUND_REVERSAL','DIRECT_DEBIT_REFUND') THEN 'BankTransferFee'
+    END AS revenue_category,  
+    CASE
+        WHEN direction = 'Inbound'
+        AND tax = 0
+        AND credit = 0
+        AND bounced = 0
+        AND deposit = 0
+        AND fin_transfer = 0
+        AND is_description_include_last_name = 0
+        THEN 1
+        ELSE 0
+    END AS is_turnover,
+    CASE WHEN ct.description ILIKE '%xero%' THEN 1 ELSE 0 END AS xero,
+    CASE WHEN ct.description ILIKE '% sage %' THEN 1 ELSE 0 END AS sage,
+    CASE WHEN ct.description ILIKE '%quickbooks%' OR ct.description ILIKE '%intuit%' THEN 1 ELSE 0 END AS quickbooks,
+    CASE WHEN ct.description ILIKE '%freeagent%' THEN 1 ELSE 0 END AS freeagent,
+    CASE
+        WHEN direction = 'Inbound' AND ct.description ILIKE '%Elavon%' THEN 1
+        WHEN direction = 'Inbound' AND (ct.description ILIKE '% FDMS %' OR ct.description ILIKE 'FDMS %' OR ct.description LIKE '%FDMS%') THEN 1
+        WHEN direction = 'Inbound' AND ct.description ILIKE '%WORLDPAY%' THEN 1
+        ELSE 0 
+    END AS mca,
+    CASE
+      WHEN direction = 'Inbound' AND c.name ILIKE '%Invoice%' THEN 1
+      WHEN direction = 'Inbound' AND ct.description NOT LIKE '%SUMUP%' AND (ct.description ILIKE '% INV %' OR ct.description ILIKE 'INV %' OR ct.description ILIKE '% INV' OR ct.description ILIKE '% INV- %' OR ct.description ILIKE 'INV- %' OR ct.description ILIKE '% INV-%' OR ct.description ILIKE '% INVOICE %' OR ct.description ILIKE 'INVOICE %' OR ct.description ILIKE '% INVOICE') THEN 1
+      WHEN direction = 'Inbound' AND ct.description NOT LIKE '%SUMUP%' AND (ct.description ILIKE '%remitance%' OR ct.description ILIKE '%remittance%') THEN 1
+      WHEN direction = 'Inbound' AND ct.description NOT LIKE '%SUMUP%' AND (ct.description ILIKE '% LIM %' OR ct.description ILIKE 'LIM %' OR ct.description ILIKE '% LIM' OR ct.description ILIKE '% LTD %' OR ct.description ILIKE 'LTD %'
+          OR ct.description ILIKE '% LTD' OR ct.description ILIKE '% LLP %' OR ct.description ILIKE 'LLP %' OR ct.description ILIKE '% LLP' OR ct.description ILIKE '% Limited %' OR ct.description ILIKE 'Limited %' OR ct.description ILIKE '% Limited' OR ct.description ILIKE '% Limite %' OR ct.description ILIKE '% Limite%' OR ct.description ILIKE '% Limit %' OR ct.description ILIKE '% Limit%') THEN 1
+      ELSE 0 
+    END AS invoice,
+    CASE
+        WHEN direction = 'Inbound' AND LEFT(ct.description, CHARINDEX('ref', ct.description)-1) ILIKE '%WORLDPAY%' THEN 1
+        WHEN direction = 'Inbound' AND LEFT(ct.description, CHARINDEX('ref', ct.description)-1) ILIKE '%FIRSTDATA%' THEN 1
+        WHEN direction = 'Inbound' AND LEFT(ct.description, CHARINDEX('ref', ct.description)-1) ILIKE '%FIRST DATA%' THEN 1
+        WHEN direction = 'Inbound' AND LEFT(ct.description, CHARINDEX('ref', ct.description)-1) ILIKE '%PAYMENTSENSE%' THEN 1
+        WHEN direction = 'Inbound' AND LEFT(ct.description, CHARINDEX('ref', ct.description)-1) ILIKE '%IZETTLE%' THEN 1
+        WHEN direction = 'Inbound' AND LEFT(ct.description, CHARINDEX('ref', ct.description)-1) ILIKE '%CARDNET%' THEN 1
+        WHEN direction = 'Inbound' AND LEFT(ct.description, CHARINDEX('ref', ct.description)-1) ILIKE '%BCARD%' THEN 1
+        WHEN direction = 'Inbound' AND LEFT(ct.description, CHARINDEX('ref', ct.description)-1) ILIKE '%FDMS%' THEN 1
+        WHEN direction = 'Inbound' AND LEFT(ct.description, CHARINDEX('ref', ct.description)-1) ILIKE '%ELAVON%' THEN 1
+        WHEN direction = 'Inbound' AND LEFT(ct.description, CHARINDEX('ref', ct.description)-1) ILIKE '%SUMUP%' THEN 1
+        WHEN direction = 'Inbound' AND LEFT(ct.description, CHARINDEX('ref', ct.description)-1) ILIKE '%SQUARE%' THEN 1
+        WHEN direction = 'Inbound' AND LEFT(ct.description, CHARINDEX('ref', ct.description)-1) ILIKE '%STRIPE%' THEN 1
+        WHEN direction = 'Inbound' AND LEFT(ct.description, CHARINDEX('ref', ct.description)-1) ILIKE '% MV %' THEN 1
+        WHEN direction = 'Inbound' AND LEFT(ct.description, CHARINDEX('ref', ct.description)-1) ILIKE 'MV %' THEN 1
+        WHEN direction = 'Inbound' AND LEFT(ct.description, CHARINDEX('ref', ct.description)-1) ILIKE '% MV' THEN 1
+        ELSE 0 
+    END AS pos,  -- recheck the data apple to apple
+    CASE
+        WHEN direction = 'Inbound' AND  LEFT(ct.description, CHARINDEX('ref', ct.description)-1) ILIKE '%STRIPE%' THEN 1
+        ELSE 0 
+    END AS pos1,   -- recheck the data apple to apple
+    CASE
+        WHEN direction = 'Inbound' AND LEFT(ct.description, CHARINDEX('ref', ct.description)-1) ILIKE '%WORLDPAY%' THEN 1
+        WHEN direction = 'Inbound' AND LEFT(ct.description, CHARINDEX('ref', ct.description)-1) ILIKE '%FIRSTDATA%' THEN 1
+        WHEN direction = 'Inbound' AND LEFT(ct.description, CHARINDEX('ref', ct.description)-1) ILIKE '%FIRST DATA%' THEN 1
+        WHEN direction = 'Inbound' AND LEFT(ct.description, CHARINDEX('ref', ct.description)-1) ILIKE '%PAYMENTSENSE%' THEN 1
+        WHEN direction = 'Inbound' AND LEFT(ct.description, CHARINDEX('ref', ct.description)-1) ILIKE '%IZETTLE%' THEN 1
+        WHEN direction = 'Inbound' AND LEFT(ct.description, CHARINDEX('ref', ct.description)-1) ILIKE '%CARDNET%' THEN 1
+        WHEN direction = 'Inbound' AND LEFT(ct.description, CHARINDEX('ref', ct.description)-1) ILIKE '%BCARD%' THEN 1
+        WHEN direction = 'Inbound' AND LEFT(ct.description, CHARINDEX('ref', ct.description)-1) ILIKE '%FDMS%' THEN 1
+        WHEN direction = 'Inbound' AND LEFT(ct.description, CHARINDEX('ref', ct.description)-1) ILIKE '%ELAVON%' THEN 1
+        WHEN direction = 'Inbound' AND LEFT(ct.description, CHARINDEX('ref', ct.description)-1) ILIKE '%SUMUP%' THEN 1
+        WHEN direction = 'Inbound' AND LEFT(ct.description, CHARINDEX('ref', ct.description)-1) ILIKE '%SQUARE%' THEN 1
+        WHEN direction = 'Inbound' AND LEFT(ct.description, CHARINDEX('ref', ct.description)-1) ILIKE '% MV %' THEN 1
+        WHEN direction = 'Inbound' AND LEFT(ct.description, CHARINDEX('ref', ct.description)-1) ILIKE 'MV %' THEN 1
+        WHEN direction = 'Inbound' AND LEFT(ct.description, CHARINDEX('ref', ct.description)-1) ILIKE '% MV' THEN 1
+        ELSE 0 
+    END AS pos2,   -- recheck the data apple to apple
+    CASE
+        WHEN ct.mcc = '4900' THEN 1
+        WHEN direction = 'Outbound' AND (ct.description ILIKE 'GAS %' OR ct.description ILIKE '% GAS' OR ct.description ILIKE '% GAS %') THEN 1
+        WHEN direction = 'Outbound' AND (ct.description ILIKE 'ENERGY %' OR ct.description ILIKE '% ENERGY' OR ct.description ILIKE '% ENERGY %') THEN 1
+        WHEN direction = 'Outbound' AND (ct.description ILIKE 'POWER %' OR ct.description ILIKE '% POWER' OR ct.description ILIKE '% POWER %') THEN 1
+        WHEN direction = 'Outbound' AND (ct.description ILIKE 'E.ORG %' OR ct.description ILIKE '% E.ORG' OR ct.description ILIKE '% E.ORG %') THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%ECOTRICITY%' THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%ELECTRIC%' THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%FIRST UTILITY%' THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%ENERGIA%' THEN 1
+        ELSE 0 
+    END AS energy,
+    CASE
+        WHEN ct.mcc IN ('2310','5960','6300','6310') THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%INSURANCE%' THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%PREMIUM%' THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%SIMPLY BUSINESS%' THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%INSURE%' THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%COVER%' THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%HASTINGS DIRECT%' THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%DIRECT LINE%' THEN 1
+        WHEN direction = 'Outbound' AND (ct.description ILIKE 'RAC %' OR ct.description ILIKE '% RAC' OR ct.description ILIKE '% RAC %') THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%PROTECTIVITY%' THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%SIMPLYBUSINESS%' THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%AVIVA%' THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%INSURAN%' THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%RCIB%' THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%ESURE%' THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%DL FOR BUSINESS%' THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%SWINTON%' THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%AGEAS%' THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%PROTECT%' THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%UNDERW%' THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%ASSURED%' THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%HISCOX%' THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%AXA%' THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%LEGAL & GEN%' THEN 1
+        WHEN direction = 'Outbound' AND (ct.description ILIKE 'INS %' OR ct.description ILIKE '% INS' OR ct.description ILIKE '% INS %') THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%VITALITY%' THEN 1
+        ELSE 0 
+    END AS insurance,
+    CASE
+        WHEN ct.mcc IN ('4811','4812','4813','4815','4817','4818','4819','4821','1502','1503','1504','2385','2386','2387','2388','2481','2501','2502','2503') THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%INTERNET%' THEN 1
+        WHEN direction = 'Outbound' AND (ct.description ILIKE '% EE' OR ct.description ILIKE 'EE %' OR ct.description ILIKE '% EE %') THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%O2%' THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%GIFFGAFF%' THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%VODAFONE%' THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%VOXI%' THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%VIRGIN MOBILE%' THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%VOIPFONE%' THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%VIRGIN MEDIA%' THEN 1
+        WHEN direction = 'Outbound' AND (ct.description ILIKE 'MOBILE %' OR ct.description ILIKE '% MOBILE' OR ct.description ILIKE '% MOBILE %') THEN 1
+        WHEN direction = 'Outbound' AND (ct.description ILIKE 'BT %' OR ct.description ILIKE '% BT' OR ct.description ILIKE '% BT %') THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%BUZZ CONNECT%' THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%VONAGE%' THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%PLUSNET%' THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%XLN%' THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%TALKTALK%' THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%EPHONICA%' THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%REBTEL%' THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%ORANGE%' THEN 1
+        WHEN direction = 'Outbound' AND ct.description ILIKE '%H3G%' THEN 1
+        ELSE 0 
+    END AS telephone,
+    CASE
+        WHEN direction = 'Inbound' AND ct.description ILIKE '%eBay%' THEN 0
+        WHEN direction = 'Inbound' AND ct.description ILIKE '%Airbnb%' THEN 0
+        WHEN direction = 'Inbound' AND ct.description ILIKE '%Stripe%' THEN 1
+        WHEN direction = 'Inbound' AND ct.description ILIKE '%Shopify%' THEN 1
+        WHEN direction = 'Inbound' AND ct.description ILIKE '%Checkout.com%' THEN 1
+        WHEN direction = 'Inbound' AND ct.description ILIKE '%PayPal%' THEN 1
+        WHEN direction = 'Inbound' AND ct.description ILIKE '%Amazon%' THEN 1
+        WHEN direction = 'Inbound' AND ct.description ILIKE '%Amzn%' THEN 1
+        WHEN direction = 'Inbound' AND ct.description ILIKE '%Klarna%' THEN 1
+        WHEN direction = 'Inbound' AND ct.description ILIKE '%Braintree%' THEN 1
+        WHEN direction = 'Inbound' AND ct.description ILIKE '%BogCommerce%' THEN 1
+        WHEN direction = 'Inbound' AND ct.description ILIKE '%Square%' THEN 1
+        WHEN direction = 'Inbound' AND ct.description ILIKE '%Auth.net%' THEN 1
+        WHEN direction = 'Inbound' AND ct.description ILIKE '%WooCommerce%' THEN 1
+        WHEN direction = 'Inbound' AND ct.description ILIKE '%Cratejoy%' THEN 1
+        WHEN direction = 'Inbound' AND ct.description ILIKE '%Authorize.Net%' THEN 1
+        WHEN direction = 'Inbound' AND ct.description ILIKE '%Chargify%' THEN 1
+        WHEN direction = 'Inbound' AND ct.description ILIKE '%Chargebee%' THEN 1
+        WHEN direction = 'Inbound' AND ct.description ILIKE '%Recurly%' THEN 1
+        WHEN direction = 'Inbound' AND ct.description ILIKE '%Profitwell%' THEN 1
+        WHEN direction = 'Inbound' AND ct.description ILIKE '%ChartMogul%' THEN 1
+        WHEN direction = 'Inbound' AND ct.description ILIKE '%xZuora%' THEN 1
+        WHEN direction = 'Inbound' AND ct.description ILIKE '%Fusebill%' THEN 1
+        WHEN direction = 'Inbound' AND ct.description ILIKE '%Aria%' THEN 1
+        WHEN direction = 'Inbound' AND ct.description ILIKE '%Magento%' THEN 1
+        WHEN direction = 'Inbound' AND ct.description ILIKE '%PrestaShop%' THEN 1
+        ELSE 0 
+    END AS valid_psp_revenue_terms,
+    (CASE
+        WHEN ct."type" = 'CARD_TRANSACTION' AND ct.credit_debit_indicator = 'DEBIT' AND cp.plan_name = 'Plus_with_cashback' THEN
+            CASE
+                WHEN COALESCE(ct.mcc,0) IN (6012,9311,9399) AND (TO_DATE(ct.value_date_time) >= '2023-10-24') THEN 0
+                WHEN COALESCE(ct.mcc,0) IN (6211) AND (TO_DATE(ct.value_date_time) >= '2025-03-12') THEN 0
+                WHEN ct.amount_amount > 0 then ct.amount_amount*0.005
+                ELSE ABS(ct.amount_amount)*0.005
+            END
+        ELSE 0 
+    END)::FLOAT AS actual_cashback,  
+    (CASE
+        WHEN ct."type" = 'CARD_TRANSACTION' AND ct.credit_debit_indicator = 'DEBIT' THEN
+            CASE
+                WHEN COALESCE(ct.mcc,0) IN (6012,9311,9399) AND (TO_DATE(ct.value_date_time) >= '2023-10-24') THEN 0
+                WHEN ct.amount_amount > 0 then ct.amount_amount*0.005
+                ELSE ABS(ct.amount_amount)*0.005
+            END
+        ELSE 0 
+    END)::FLOAT AS potential_cashback, 
+    GETDATE() AS dbt_inserted_at
+    ,ct.tis_transaction_type
+    ,ct.card_id
+    ,ct.issuer_institution
+    ,ct.merchant_location
+    ,ct.reservation_balance
+    ,ct.tide_fee_amount_amount
+    ,ct.tide_fee_amount_currency
+    ,ct.tide_fee_external_tracking_id
+    ,ct.event_json
+
+FROM {{ ref('chnl_tidewallet_transactions') }} ct
+LEFT JOIN {{ source('tidewallet_api_public', 'tide_transaction_exchange_rate') }} er 
+    ON er.id = ct.exchange_id
+LEFT JOIN latest_raw_cleared_transactions rct 
+    ON ct.transaction_reference = rct.txn_id
+LEFT JOIN {{ source('mem_prod','company_plans') }} cp
+    ON ct.company_id = cp.company_id
+    AND ct.value_date_time > cp.plan_start_at
+    AND (ct.value_date_time < cp.plan_end_at OR cp.plan_end_at IS NULL)
+LEFT JOIN {{ source('ps_pres_business_services','latest_transaction_categories') }} c 
+    ON ct.transaction_id = c.transaction_id
+LEFT JOIN {{ source('kyx_prod','latest_companies') }} co
+    ON co.company_id = ct.company_id
+LEFT JOIN {{ source('kyx_prod','latest_users') }} u
+    ON co.member_id = u.member_id
+LEFT JOIN card_activation ca
+    ON ca.account_id = ct.account_id 
+    AND ca.card_pan = ct.card_identification
+LEFT JOIN actual_card_activation ac
+    ON ac.account_id = ct.account_id
+    AND ac.serial_number = ct.card_serial_no
+
+WHERE ct.status = 'CLEARED' AND ct.issuer='TIDE' 
+
+{% if is_incremental() %}
+
+   AND ct.transaction_loaded_at >  (SELECT MAX(x.loaded_at) FROM {{ this }} x)
+
+{% endif %}
